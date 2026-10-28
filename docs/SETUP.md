@@ -78,6 +78,7 @@ disable_splash=1
 initial_turbo=30
 auto_initramfs=0
 dtoverlay=disable-bt
+enable_uart=0
 gpu_mem=16
 ```
 
@@ -95,6 +96,7 @@ Also comment out `dtoverlay=vc4-kms-v3d` and `max_framebuffers=2` near the top.
 | --- | --- |
 | `auto_initramfs=0` | Skips the initramfs, which saves about 7 seconds. The SD card and ext4 drivers are built into the Raspberry Pi kernel, so it isn't needed. |
 | `dtoverlay=disable-bt` | Turns off Bluetooth. Remove it if you need Bluetooth. WiFi isn't affected. |
+| `enable_uart=0` | Keeps the serial port off. The button is on GPIO 14, the serial port's transmit pin. `disable-bt` turns the serial port on by default, and a serial console would drive the button pin during boot. |
 | `gpu_mem=16` | Loads the smaller GPU firmware. Fine with no display or camera. |
 | `vc4-kms-v3d` commented out | Skips loading the display driver. Fine without a display. |
 | `boot_delay`, `disable_splash`, `initial_turbo` | Shorten the firmware stage. |
@@ -102,7 +104,7 @@ Also comment out `dtoverlay=vc4-kms-v3d` and `max_framebuffers=2` near the top.
 
 **If the Pi doesn't boot after this**, put the SD card in any computer, open `config.txt` on the boot partition, and set `auto_initramfs=1` again.
 
-**Kernel messages** (`/boot/firmware/cmdline.txt`). Add `quiet loglevel=3` to the end of the line. The file must stay a single line.
+**Kernel messages** (`/boot/firmware/cmdline.txt`). Remove `console=serial0,115200`, and add `quiet loglevel=3` to the end of the line. The file must stay a single line.
 
 **Swap.** Turn it off. The program uses about 140 MB of the Pi Zero's 512 MB.
 

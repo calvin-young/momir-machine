@@ -61,29 +61,29 @@ flowchart LR
 
 BCM numbering. CMC X0 to X9 are the ones digits, and CMC 0X and 1X are the tens.
 
-Key: 🟧 3.3 V · 🟥 5 V · ⬛ ground · 🟨 ID EEPROM (don't use) · 🟦 LED · 🟪 button · 🟩 dial
+Key: 🟧 3.3 V · 🟥 5 V · ⬛ ground · ⬜ GPIO · 🟨 ID EEPROM (don't use) · 🟦 LED · 🟪 button · 🟩 dial
 
 | Usage | BCM | Pin | Pin | BCM | Usage |
 | --- | --- | ---: | :--- | --- | --- |
 | | 🟧 3V3 | 1 | 2 | 🟥 5V | |
-| | GPIO 2 | 3 | 4 | 🟥 5V | |
-| | GPIO 3 | 5 | 6 | ⬛ Ground | 🟪 Button Ground |
-| 🟦 LED | GPIO 4 | 7 | 8 | GPIO 14[^uart] | 🟪 Button |
-| 🟦 LED Ground | ⬛ Ground | 9 | 10 | GPIO 15[^uart] | |
-| | GPIO 17 | 11 | 12 | GPIO 18 | |
-| | GPIO 27 | 13 | 14 | ⬛ Ground | |
-| | GPIO 22 | 15 | 16 | GPIO 23 | |
-| | 🟧 3V3 | 17 | 18 | GPIO 24 | |
-| | GPIO 10 | 19 | 20 | ⬛ Ground | |
-| | GPIO 9 | 21 | 22 | GPIO 25 | 🟩 CMC X0 |
-| | GPIO 11 | 23 | 24 | GPIO 8 | 🟩 CMC X1 |
-| | ⬛ Ground | 25 | 26 | GPIO 7 | 🟩 CMC X2 |
+| | ⬜ GPIO 2 | 3 | 4 | 🟥 5V | |
+| | ⬜ GPIO 3 | 5 | 6 | ⬛ Ground | 🟪 Button Ground |
+| 🟦 LED | ⬜ GPIO 4 | 7 | 8 | ⬜ GPIO 14[^uart] | 🟪 Button |
+| 🟦 LED Ground | ⬛ Ground | 9 | 10 | ⬜ GPIO 15[^uart] | |
+| | ⬜ GPIO 17 | 11 | 12 | ⬜ GPIO 18 | |
+| | ⬜ GPIO 27 | 13 | 14 | ⬛ Ground | |
+| | ⬜ GPIO 22 | 15 | 16 | ⬜ GPIO 23 | |
+| | 🟧 3V3 | 17 | 18 | ⬜ GPIO 24 | |
+| | ⬜ GPIO 10 | 19 | 20 | ⬛ Ground | |
+| | ⬜ GPIO 9 | 21 | 22 | ⬜ GPIO 25 | 🟩 CMC X0 |
+| | ⬜ GPIO 11 | 23 | 24 | ⬜ GPIO 8 | 🟩 CMC X1 |
+| | ⬛ Ground | 25 | 26 | ⬜ GPIO 7 | 🟩 CMC X2 |
 | | 🟨 ID_SD | 27 | 28 | 🟨 ID_SC | |
-| 🟩 CMC X7 | GPIO 5 | 29 | 30 | ⬛ Ground | |
-| 🟩 CMC X8 | GPIO 6 | 31 | 32 | GPIO 12 | 🟩 CMC X3 |
-| 🟩 CMC X9 | GPIO 13 | 33 | 34 | ⬛ Ground | 🟩 CMC Ones Ground |
-| 🟩 CMC 0X | GPIO 19 | 35 | 36 | GPIO 16 | 🟩 CMC X4 |
-| 🟩 CMC 1X | GPIO 26 | 37 | 38 | GPIO 20 | 🟩 CMC X5 |
-| 🟩 CMC Tens Ground | ⬛ Ground | 39 | 40 | GPIO 21 | 🟩 CMC X6 |
+| 🟩 CMC X7 | ⬜ GPIO 5 | 29 | 30 | ⬛ Ground | |
+| 🟩 CMC X8 | ⬜ GPIO 6 | 31 | 32 | ⬜ GPIO 12 | 🟩 CMC X3 |
+| 🟩 CMC X9 | ⬜ GPIO 13 | 33 | 34 | ⬛ Ground | 🟩 CMC Ones Ground |
+| 🟩 CMC 0X | ⬜ GPIO 19 | 35 | 36 | ⬜ GPIO 16 | 🟩 CMC X4 |
+| 🟩 CMC 1X | ⬜ GPIO 26 | 37 | 38 | ⬜ GPIO 20 | 🟩 CMC X5 |
+| 🟩 CMC Tens Ground | ⬛ Ground | 39 | 40 | ⬜ GPIO 21 | 🟩 CMC X6 |
 
-[^uart]: GPIO 14 and 15 are the Pi's serial port (UART). The button uses GPIO 14, so the serial console has to stay off.
+[^uart]: GPIO 14 and 15 are the Pi's serial port (UART). The button uses GPIO 14, so the serial port and its console have to stay off. See [SETUP.md](SETUP.md#faster-boot-optional).
