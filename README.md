@@ -54,7 +54,7 @@ Card art is pre-processed into 384-pixel-wide, 1-bit dithered images for the pri
 
 ## Status
 
-Version 1.0. It works, and it's a hobby project, so expect rough edges. The hardware and printer settings are specific to this build. Known issues are listed in [docs/DECISIONS.md](docs/DECISIONS.md#issues-and-inconsistencies).
+Version 1.0.0. It works, and it's a hobby project, so expect rough edges. The hardware and printer settings are specific to this build. Known issues are listed in [docs/DECISIONS.md](docs/DECISIONS.md#issues-and-inconsistencies).
 
 ## Prior art
 

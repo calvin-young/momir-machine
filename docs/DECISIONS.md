@@ -20,7 +20,7 @@ That still leaves creatures that can't be cast, depending on the card's layout. 
 | `modal_dfc` | Either face can be cast. | Keeps the card if either face is a creature. Always catalogs the front. Prints the back only if the front text mentions "transform". | Mismatch, but no cards are affected today (issues 4 and 5) |
 | `reversible_card` | They're not real. Ignore them. | Not excluded, but none get through today. | Latent (issue 6) |
 | `prepare` | The prepared spell can be cast while the creature is on the battlefield, so print it. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Matches |
-| `adventure` | The Adventure is cast from hand, so it doesn't matter once the creature is on the battlefield. Don't print it, unless a card makes it relevant there. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Mismatch (issue 3) |
+| `adventure` | The Adventure is cast from hand, so it doesn't matter once the creature is on the battlefield. Don't print it. No card is known to make it relevant there. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Mismatch (issue 3) |
 | `token` | Tokens are out. | Some get through, because their type line doesn't say "Token". | Bug (issue 2) |
 
 ### Modal double-faced cards
@@ -95,13 +95,16 @@ Resolved while writing these docs:
 - Prior art credited.
 - The project isn't work-related.
 - The code is right about the pinout. GPIO 24 and its ground aren't wired, so they're out of the docs.
-- Power: the battery protection board feeds a boost converter (about 7 V) for the printer and a buck converter (5 V) for the Pi. The Pi takes power on one USB port and drives the printer from the other. It's all headless.
+- Power: the battery protection board feeds a boost converter (7 V) for the printer and a buck converter (5 V) for the Pi. The Pi takes power on one USB port and drives the printer from the other. It's all headless.
 - Charging: wall adapter, USB-C cable, USB-C charger board, protection board, cells. The power switch sits between the protection board and everything else, so it only charges while switched on. That's documented as a hardware quirk in HARDWARE.md, not as an issue.
 - Part names can be rewritten to be clearer.
+- The button's LED has a 220 ohm series resistor.
+- The boost converter outputs 7 V.
+- Version 1.0.0 is released as is. The issues listed here get fixed in later versions.
 - The power switch starts the machine, and a systemd service runs `main.py`.
 - The dial is two of Adafruit's mechanical decade counters (product 1082), at $1.50 each from a $7.50 5-pack.
 - The parts list shows the cost per machine and the cost to buy, multi-packs included.
-- Prepare cards print their spell half. Adventure cards don't, unless the Adventure matters on the battlefield.
+- Prepare cards print their spell half. Adventure cards don't, since no card is known to make the Adventure matter on the battlefield. The logic gets fixed in a later version.
 - BOM links added. The battery price covers both cells.
 - The pinout is drawn like the original Notion table.
 - License: my choice, free and open source.
@@ -116,15 +119,12 @@ Resolved while writing these docs:
 - The wiring diagram is a Mermaid flowchart. There's no Fritzing file.
 - Only the tens counter's 0 and 1 positions are wired.
 - Pack sizes come from the product pages: the protection board is a 2-pack, the boost a 6-pack, the buck a 10-pack, and the cable a 3-pack. The charger board, switch, button and cells are bought singly.
-- The MT3608 output is about 7 V, as you remember it. It hasn't been measured.
 - The dial's common contacts go to the ground pins 34 (ones) and 39 (tens).
 - The button lockout exists to stop double-prints.
-- Nothing has been tagged as `v1.0.0` yet.
 
 **Questions not asked**
 
-- Does the button's LED have a series resistor? Adafruit recommends 220 to 1000 ohms, and none is in the parts list.
-- Which Adventure cards, if any, make the Adventure relevant on the battlefield?
+- None open.
 
 **Follow-ups**
 

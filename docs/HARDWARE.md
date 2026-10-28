@@ -22,10 +22,11 @@ Parts, wiring, and pinout for version 1.0. This build is specific to these parts
 | [LM2596 buck converter](https://www.amazon.com/dp/B07VVXF7YX) (adjustable, for the Pi) | 1 | $1.20 | $1.20 | 10-pack | $12.00 |
 | [Mechanical decade counter](https://www.adafruit.com/product/1082) (thumbwheel digit, 0 to 9) | 2 | $1.50 | $3.00 | 5-pack | $7.50 |
 | [LED illuminated triangle pushbutton](https://www.adafruit.com/product/4186) | 1 | $3.95 | $3.95 | single | $3.95 |
+| 220 ohm resistor (in series with the button's LED) | 1 | | | | |
 | [Micro-USB to mini-USB cable](https://www.amazon.com/dp/B0DJVG778V), 10 in | 1 | $3.00 | $3.00 | 3-pack | $9.00 |
 | **Total** | | | **$75.48** | | **$110.28** |
 
-Not counted: wire, the enclosure, and the USB wall adapter and USB-C cable used for charging.
+Not counted: the resistor, wire, the enclosure, and the USB wall adapter and USB-C cable used for charging.
 
 ## Wiring
 
@@ -35,7 +36,7 @@ flowchart LR
     cells["2x 18650 cells"] --- bms["2S battery<br/>protection board"]
     bms --- switch["Power switch"]
     switch --- charger
-    switch --> boost["MT3608 boost<br/>about 7 V"]
+    switch --> boost["MT3608 boost<br/>7 V"]
     switch --> buck["LM2596 buck<br/>5 V"]
     boost --> printer["EM5820 printer"]
     buck -- "USB power port" --> pi["Raspberry Pi Zero W"]
@@ -44,11 +45,11 @@ flowchart LR
     btn["Triangle pushbutton<br/>with LED"] -- "GPIO 14 button<br/>GPIO 4 LED" --> pi
 ```
 
-- **Power:** The two cells sit in series behind the battery protection board, which guards against overcharge, overdischarge and short circuits, and balances the cells. The power switch sits between the protection board and everything else, so with the switch off, the cells are isolated. Past the switch, the MT3608 boost converter supplies about 7 V to the printer, and the LM2596 buck converter supplies 5 V to the Pi through its USB power port.
+- **Power:** The two cells sit in series behind the battery protection board, which guards against overcharge, overdischarge and short circuits, and balances the cells. The power switch sits between the protection board and everything else, so with the switch off, the cells are isolated. Past the switch, the MT3608 boost converter supplies 7 V to the printer, and the LM2596 buck converter supplies 5 V to the Pi through its USB power port.
 - **Charging:** A USB wall adapter and a USB-C cable plug into the charger board, which boosts the 5 V from USB up to 8.4 V to charge the 2S pack.
 - **Printer:** It connects to the Pi's USB data port with the micro-to-mini cable, for data only. The code finds it by USB ID `28e9:0289`.
 - **Dial:** Two [mechanical decade counters](https://www.adafruit.com/product/1082). Each has a common contact and ten digit contacts, and only one digit contact touches the common at a time. The commons go to ground, and each digit goes to a GPIO with the Pi's internal pull-up, so the selected digit reads low. Only the tens counter's 0 and 1 positions are wired.
-- **Button:** Active low, with an internal pull-up. The LED is lit while the machine is ready, and it blinks while it's busy.
+- **Button:** Active low, with an internal pull-up. The LED runs from GPIO 4 through a 220 ohm resistor. It's lit while the machine is ready, and it blinks while it's busy.
 - **Headless:** There's no display, keyboard, or other USB device. Flipping the power switch boots the Pi, and a systemd service starts the program. See [SETUP.md](SETUP.md#start-at-boot).
 
 ### Quirks
