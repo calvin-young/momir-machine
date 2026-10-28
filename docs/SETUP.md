@@ -60,7 +60,73 @@ source .venv/bin/activate
 pip install python-escpos pillow
 ```
 
-**(confirm)** How the program is started at boot, and whether it needs `sudo` for USB access or a udev rule. Neither is in the repo yet.
+## Start at boot
+
+The machine is meant to run from a power switch: flip it on, and the startup slip prints. A systemd service starts `main.py` at boot. It runs as root, which gives it access to the printer's USB device and the GPIO pins without a udev rule.
+
+The service file is [system/momir.service](../system/momir.service). It assumes the repo is at `/home/calvin/momir`. If yours is somewhere else, change the four paths in it first.
+
+```bash
+mkdir -p .escpos-cache
+ESCPOS_CAPABILITIES_PICKLE_DIR=$PWD/.escpos-cache .venv/bin/python -c "import escpos.printer"
+sudo cp system/momir.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable momir.service
+```
+
+The second line builds python-escpos's printer database cache once. Without it, the library re-parses its database on every start, which takes about 8 seconds on a Pi Zero.
+
+Check it with `systemctl status momir` and `journalctl -u momir`. The log shows how many seconds after boot the startup slip and the ready line were sent.
+
+## Faster boot (optional)
+
+With a stock Raspberry Pi OS Lite install, a Pi Zero W takes about a minute to print the startup slip. With the changes below, the startup slip goes out about 16 seconds after the kernel starts, and the ready line follows about 2 seconds later. Add a few seconds before that for the Pi's firmware. WiFi and SSH still work. They come up later than the machine, about 80 seconds after boot.
+
+The service file above already does part of this. It starts the program as soon as the SD card is mounted, without waiting for the network or the rest of the system. It also gives the program real-time priority until the ready line prints.
+
+Make these changes on the Pi. Back up `/boot/firmware/config.txt` first.
+
+**Firmware and kernel** (`/boot/firmware/config.txt`). Change or add these lines in the `[all]` section at the end:
+
+```ini
+boot_delay=0
+disable_splash=1
+initial_turbo=30
+auto_initramfs=0
+dtoverlay=disable-bt
+gpu_mem=16
+```
+
+Also comment out `dtoverlay=vc4-kms-v3d` and `max_framebuffers=2` near the top.
+
+| Setting | Effect |
+| --- | --- |
+| `auto_initramfs=0` | Skips the initramfs, which saves about 7 seconds. The SD card and ext4 drivers are built into the Raspberry Pi kernel, so it isn't needed. |
+| `dtoverlay=disable-bt` | Turns off Bluetooth. Remove it if you need Bluetooth. WiFi isn't affected. |
+| `gpu_mem=16` | Loads the smaller GPU firmware. Fine with no display or camera. |
+| `vc4-kms-v3d` commented out | Skips loading the display driver. Fine without a display. |
+| `boot_delay`, `disable_splash`, `initial_turbo` | Shorten the firmware stage. |
+
+**If the Pi doesn't boot after this**, put the SD card in any computer, open `config.txt` on the boot partition, and set `auto_initramfs=1` again.
+
+**Swap.** Turn it off. The program uses about 140 MB of the Pi Zero's 512 MB.
+
+```bash
+sudo mkdir -p /etc/rpi/swap.conf.d
+printf "[Main]\nMechanism=none\n" | sudo tee /etc/rpi/swap.conf.d/90-no-swap.conf
+```
+
+**Services you don't need.** None of these are needed for WiFi or SSH.
+
+```bash
+sudo systemctl disable keyboard-setup.service console-setup.service rpi-eeprom-update.service sshswitch.service getty@tty1.service NetworkManager-wait-online.service
+```
+
+`getty@tty1` is the login prompt on a monitor. Leave it enabled if you plug one in. Leave NetworkManager, wpa_supplicant, ssh and systemd-rfkill alone: WiFi and SSH depend on them.
+
+**Keep the filesystem check.** A power switch cuts power without a clean shutdown, and the check at boot repairs the SD card's filesystem after that.
+
+Reboot, then check `journalctl -u momir` for the boot times.
 
 ## Run it
 
@@ -82,4 +148,5 @@ python3 main.py "Card Name"
 
 - **"Could not write catalog cache"**: the Pi can't write `data/catalog.pkl`. The machine still runs, but startup stays slow.
 - **Slow startup**: the first load parses `catalog.json` and writes `catalog.pkl`. Later starts load the pickle, which is faster.
+- **Startup still slow after the steps above**: check that `.escpos-cache/` holds a `.capabilities.pickle` file, and that `data/catalog.pkl` exists. The service can't write these in the first seconds of boot, while the SD card is still read-only.
 - **"No creatures exist with these filters"**: no card matches the mana value and the current toggles. Check the dial, or turn off the Pauper toggle.

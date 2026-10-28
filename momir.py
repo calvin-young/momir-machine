@@ -166,7 +166,7 @@ class Momir:
         self.printer.ln(2)
 
     def print_ready(self):
-        # Printed once the catalog is loaded; the sound means the button is ready
+        # Printed once the catalog is loaded; the printer's feed noise tells players the button is ready
         self.printer.set(align='left', font='b')
         self.printer.textln(f"{self.total_cards:,} creatures lurk in the vat...")
         self.printer.print_and_feed(3)

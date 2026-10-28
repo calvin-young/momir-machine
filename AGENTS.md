@@ -21,6 +21,7 @@ Notes for AI agents working in this repo. Humans should start with [README.md](R
 | `data/` | Generated: `oracle-cards*.jsonl*`, `catalog.json`, `catalog.pkl`. Not committed. |
 | `img/raw/`, `img/processed/` | Generated card art. Not committed. |
 | `img/assets/` | Hand-made boot and slip art. `raw/` is the source, `processed/` is the printer version. |
+| `system/momir.service` | systemd service that starts `main.py` at boot. See [docs/SETUP.md](docs/SETUP.md#start-at-boot) |
 | `docs/` | Hardware, setup, and decisions |
 
 ## Conventions

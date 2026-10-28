@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from momir import Momir
+import os
 import sys
 import time
 import lgpio
@@ -64,8 +65,18 @@ if __name__ == '__main__':
     h = init_gpio()
     momir = Momir()
     momir.print_startup()
+    # time.monotonic() counts from kernel start, so these lines show boot time
+    print(f"Startup slip sent, {time.monotonic():.1f} s after boot.")
     momir.load_catalog()
     momir.print_ready()
+    print(f"Ready, {time.monotonic():.1f} s after boot.")
+
+    # momir.service starts us with real-time priority so boot finishes sooner.
+    # Drop back to normal priority now, so the rest of the system (WiFi, SSH) can start.
+    try:
+        os.sched_setscheduler(0, os.SCHED_OTHER, os.sched_param(0))
+    except (AttributeError, OSError):
+        pass
 
     # Initialize Variables
     metadata = None

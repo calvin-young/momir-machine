@@ -15,6 +15,9 @@ WorkingDirectory=/run/momir
 Environment=ESCPOS_CAPABILITIES_PICKLE_DIR=/home/calvin/momir/.escpos-cache
 ExecStart=/home/calvin/momir/.venv/bin/python -u /home/calvin/momir/main.py
 Nice=-10
+# Real-time priority until the ready line prints; main.py then drops back to normal
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=10
 CPUWeight=1000
 Restart=on-failure
 RestartSec=1
