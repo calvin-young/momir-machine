@@ -23,6 +23,7 @@ Notes for AI agents working in this repo. Humans should start with [README.md](R
 | `img/assets/` | Hand-made boot and slip art. `raw/` is the source, `processed/` is the printer version. |
 | `system/momir.service` | systemd service that starts `main.py` at boot. See [docs/SETUP.md](docs/SETUP.md#start-at-boot) |
 | `docs/` | Hardware, setup, and decisions |
+| `tools/pinout_svg.py` | Draws `docs/images/pinout.svg` from its `PINS` table. Run it from the repo root after a wiring change. |
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 # Decisions
 
-Why the machine works the way it does, what's still open, and what I found while writing the docs for 1.0. Items marked **Needs check** are things I could see in the code but couldn't confirm against card data, because the data isn't in the repo.
+Why the machine works the way it does, what's still open, and what I found while writing the docs for 1.0. Card counts below come from the catalog on the Pi (18,216 creatures, checked 2026-10-27).
 
 ## Creature cards only
 
@@ -17,8 +17,10 @@ That still leaves creatures that can't be cast, depending on the card's layout. 
 | `split` | Either half can be cast. | Keeps the card if the first face is a creature (there are no creature split cards yet). Prints both halves. | Matches |
 | `flip` | Cast the top face. The card rotates later. | Keeps the card if the first face is a creature. Prints both faces. | Matches |
 | `transform` | Cast the front face. The card flips later. | Keeps the card if the first face is a creature. Prints both faces. | Matches |
-| `modal_dfc` | Either face can be cast. | Keeps the card if either face is a creature. Always catalogs the front. Prints the back only if the front text mentions "transform". | Mismatch, see issues 2 and 3 |
-| `reversible_card` | They're not real. Ignore them. | Not excluded. | Mismatch, see issue 4 |
+| `modal_dfc` | Either face can be cast. | Keeps the card if either face is a creature. Always catalogs the front. Prints the back only if the front text mentions "transform". | Mismatch, but no cards are affected today (issues 4 and 5) |
+| `reversible_card` | They're not real. Ignore them. | Not excluded, but none get through today. | Latent (issue 6) |
+| `adventure`, `prepare` | Not covered by the rules yet. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Open (issue 3) |
+| `token` | Tokens are out. | Some get through, because their type line doesn't say "Token". | Bug (issue 2) |
 
 ### Modal double-faced cards
 
@@ -37,7 +39,8 @@ That still leaves creatures that can't be cast, depending on the card's layout. 
 - **The startup slip prints before the catalog loads.** The printer responds right away at power-on, and the catalog loads while the slip prints.
 - **The button locks out for 2 seconds after each print.** The LED blinks during the lockout. The code doesn't say why. I assume it stops double-prints.
 - **Em dashes become hyphens** in the front face's text, so the printer's character set can print them.
-- **The Universes Beyond and Pauper toggles live in memory.** They reset on power cycle.
+- **The Universes Beyond and Pauper toggles live in memory.** They reset on power cycle, on purpose for 1.0. Keeping them across power cycles is planned for 2.0.
+- **The UB-on slip's quote is a joke.** It pokes fun at Universes Beyond, and it stays.
 
 ## Boot time
 
@@ -54,25 +57,30 @@ Measured on a warm reboot, from kernel start: the startup slip went from about 5
 
 ## Issues and inconsistencies
 
-These are things I found by reading the code and notes. I haven't changed any code yet.
+These are open in 1.0 and will be fixed in later versions. Most have a GitHub issue.
 
-1. **Needs check: the Universes Beyond filter may never exclude anything.** `pick_card` tests `card.get("promo_types") != "universesbeyond"`. Scryfall documents `promo_types` as an array, and a list never equals a string, so the test would always pass. Check: turn UB off and look for UB cards in the output. I also need to confirm the exact value Scryfall uses. Source: [Scryfall card objects](https://scryfall.com/docs/api/cards).
-2. **Bug: a modal DFC with a non-creature front and a creature back gets the wrong face.** Your rule is "either face is a creature". But `04_build_catalog.py` always catalogs `card_faces[0]`, so the non-creature front is stored under its mana value and the creature back is never reachable. Check: any catalog entry whose `type_line` doesn't contain `Creature` should not exist.
-3. **Bug: non-creature backs can print.** `04_build_catalog.py` keeps the back of a modal DFC when the front text contains "transform". It never checks that the back is a creature, and your rule says we don't print non-creature sides.
-4. **Needs check: reversible cards aren't excluded.** `01_filter_cards.py` doesn't check `layout`, so a `reversible_card` with a creature first face gets through. Your notes say to ignore them.
-5. **Dead filters.** `pick_card` takes a `max_year` argument, but `button` never passes it, so the year filter is always 2100. The `oldschool` field is written to the catalog and never read. `pool("oldschool")` is a placeholder that does nothing. `pick_card` can filter on Standard, Premodern, and Modern, but no dial value reaches them. Only Pauper is reachable. `PIN_SWITCH` (GPIO 24) is set up as an input and never read.
-6. **The reference sheet's counts go to the console.** `print_reference` prints the per-mana-value counts with `print()`, not the printer. The sheet shows the headings with no numbers. Intended or not?
-7. **Face B text is handled differently from face A.** `04_build_catalog.py` converts em dashes for face A only, and it doesn't default a missing `oracle_text` to an empty string. If face B has no oracle text, the stored value is `null`, and printing it would crash on `.split`. Needs check.
-8. **The QR fallback never runs.** `04_build_catalog.py` skips any card without a processed image, so every catalog card has art. `print_card`'s QR branch only runs if images go missing later.
-9. **The command-line lookup prints only the front face.** `python3 main.py "Name"` doesn't print the back of a DFC.
-10. **Paths are relative in some scripts and not others.** `01` to `03` use paths relative to the current folder. `04` and `momir.py` use the script's own folder. Run `01` to `03` from the repo root. [SETUP.md](SETUP.md) says so.
-11. **The input format may not match.** `01` reads JSON Lines. Scryfall's bulk download may be a JSON array. Needs check.
-12. **Art assets aren't generated by the pipeline.** `img/assets/` holds the boot and slip images, but `03` only processes `img/raw`. The processed assets were made by hand. Write down how, or script it.
-13. **Resolved: the "sound" comment.** It meant the noise of the printer feeding paper for the ready line. The comment in `print_ready` now says so.
-14. **The pinout table doesn't match the code.** See [HARDWARE.md](HARDWARE.md#pinout).
-15. **The BOM total doesn't add up.** See [HARDWARE.md](HARDWARE.md#parts).
-16. **Repo hygiene.** There's no `.gitignore`, so `data/`, `img/raw/`, `img/processed/`, `catalog.pkl`, and `__pycache__/` could be committed by accident. There's also no `LICENSE`.
-17. **Scryfall requests.** `02` uses 8 threads. Scryfall asks clients to keep their request rate gentle, so check its current API guidelines before rerunning the download.
+1. **Bug: the Universes Beyond filter never excludes anything.** `pick_card` tests `card.get("promo_types") != "universesbeyond"`, but `promo_types` is a list (or missing), so the test always passes. With UB turned off, the 2,108 UB-tagged cards (about 12% of the pool) are still in it. That's easy to miss in play. The fix is `"universesbeyond" not in (card.get("promo_types") or [])`. ([#1](https://github.com/calvin-young/momir-machine/issues/1))
+2. **Bug: 24 token cards are in the catalog.** Their Scryfall layout is `token`, but their type line doesn't say "Token", so `01_filter_cards.py` keeps them. Examples: the Theros challenge-deck monster cards (Hydra Head, Phoberos Reaver) and helper cards like Morph and Manifest. Filtering on `layout == "token"` would catch them. ([#2](https://github.com/calvin-young/momir-machine/issues/2))
+3. **Open: Adventure and Prepare cards print their spell half.** 137 Adventure cards and 67 Prepare cards print the spell after "FOLD HERE". Neither layout is in the rules above. Going by the MDFC rule, the spell half isn't relevant once the creature is on the battlefield, so it probably shouldn't print. ([#3](https://github.com/calvin-young/momir-machine/issues/3))
+4. **Latent: a modal DFC with a non-creature front would get the wrong face.** The rule is "either face is a creature", but `04_build_catalog.py` always catalogs `card_faces[0]`. A non-creature front would be stored and the creature back would be unreachable. No catalog card has a non-creature front today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
+5. **Latent: a modal DFC's non-creature back could print.** `04_build_catalog.py` keeps the back when the front text mentions "transform", and it never checks that the back is a creature. No card hits this today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
+6. **Latent: reversible cards aren't excluded.** `01_filter_cards.py` doesn't check for `reversible_card`. None get through today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
+7. **Dead code.** `pick_card` takes `max_year`, but `button` never passes it. The `oldschool` field is never read, and `pool("oldschool")` does nothing. The Standard, Premodern, and Modern filters exist, but no dial value reaches them. `PIN_SWITCH` (GPIO 24) is set up as an input, but nothing is wired to it. ([#8](https://github.com/calvin-young/momir-machine/issues/8))
+8. **The reference sheet's counts go to the console.** `print_reference` prints the per-mana-value counts with `print()`, not the printer, so the sheet has headings with no numbers. ([#5](https://github.com/calvin-young/momir-machine/issues/5))
+9. **Face B text isn't cleaned like face A.** Em dashes are converted on the front face only, so a back face with an em dash may print oddly. ([#6](https://github.com/calvin-young/momir-machine/issues/6))
+10. **The QR fallback never runs.** `04_build_catalog.py` skips any card without art, so `print_card`'s QR branch only runs if images go missing later.
+11. **The command-line lookup prints only the front face.** `python3 main.py "Name"` skips the back of a DFC. ([#7](https://github.com/calvin-young/momir-machine/issues/7))
+12. **Paths are relative in some scripts and not others.** `01` to `03` use paths relative to the current folder. `04` and `momir.py` use the script's own folder. Run `01` to `03` from the repo root. ([#9](https://github.com/calvin-young/momir-machine/issues/9))
+13. **Art assets aren't generated by the pipeline.** The boot and slip images in `img/assets/` were processed by hand. `03` only handles `img/raw`. ([#10](https://github.com/calvin-young/momir-machine/issues/10))
+14. **Scryfall requests.** `02` uses 8 threads. Check Scryfall's API guidelines on request rates before rerunning the download. ([#11](https://github.com/calvin-young/momir-machine/issues/11))
+
+Resolved while writing these docs:
+
+- **The "sound" comment.** It meant the noise of the printer feeding paper for the ready line. The comment in `print_ready` now says so.
+- **The pinout.** The code is right. The old table labeled GPIO 5, 6, and 13 as X6 to X8, and the new pinout follows the code.
+- **The BOM total.** The batteries are $8.88 for both, so the total is $73.98.
+- **The input format.** The Scryfall download is JSON Lines (`oracle-cards.jsonl.gz`), which is what `01` expects.
+- **Repo hygiene.** Added `LICENSE` (Apache-2.0) and `.gitignore`.
 
 ## Tally
 
@@ -85,33 +93,40 @@ These are things I found by reading the code and notes. I haven't changed any co
 - My design notes rewritten clearly, keeping my voice, with errors and inconsistencies noted.
 - Prior art credited.
 - The project isn't work-related.
+- The code is right about the pinout. GPIO 24 and its ground aren't wired, so they're out of the docs.
+- Power: the 2S BMS feeds a boost converter (about 7 V) for the printer and a buck converter (5 V) for the Pi. The Pi takes power on one USB port and drives the printer from the other. It's all headless.
+- The power switch starts the machine, and a systemd service runs `main.py`.
+- The dial is Adafruit's mechanical decade counters (product 1082).
+- BOM links added. The battery price covers both cells.
+- The pinout is drawn like the original Notion table.
+- License: my choice, free and open source.
+- The toggles reset on power cycle for now. Keeping them is planned for 2.0.
+- The UB filter seems to work in practice. Flag the bug and fix it later.
+- The "Cowabunga" quote stays.
 
 **Assumed**
 
-- The diagram is a Mermaid flowchart, which GitHub renders from the Markdown. I didn't make a Fritzing file. I can't reliably generate one here, and a Fritzing sketch needs the wiring confirmed first.
-- The pinout follows the code, not the old table.
-- The power chain and the dial's wiring are inferred from the parts list and the code.
-- The dial is wired active-low with the common grounds on pins 34 and 39.
-- The repo follows my conventions: `AGENTS.md`, `CONTRIBUTING.md`, a PR template with a requested-vs-assumed section, and this file.
-- Nothing has been tagged as `v1.0.0` or published as a release yet. I wrote the docs and didn't tag them.
+- The license is Apache-2.0, the convention's default for tools not built on GPL code. All the dependencies (python-escpos, Pillow, lgpio, requests) are compatible with it.
+- The pinout is an SVG drawn by `tools/pinout_svg.py`, because GitHub drops cell colors from Markdown tables. A plain table is kept under it for search and copying.
+- The wiring diagram is a Mermaid flowchart. There's no Fritzing file.
+- The USB-C boost charger charges the 2S pack, and the power switch sits between the pack and the converters.
+- Two decade counters are used (tens and ones), and only the tens counter's 0 and 1 positions are wired.
+- The dial's common contacts go to the ground pins 34 (ones) and 39 (tens).
 - The button lockout exists to stop double-prints.
+- Nothing has been tagged as `v1.0.0` yet.
 
 **Questions not asked**
 
-- Which way do the power converters feed the Pi and the printer, and where is the power switch? What is the GPIO 24 switch?
-- How does the dial work? Is it a rotary decade switch, and is it wired that way?
-- Is the pinout table or the code right for GPIO 5, 6, and 13?
-- Is the Oracle Cards file a JSON array or JSON Lines?
-- How does the program start at boot, and how does it get USB access?
-- Which license should this use? The conventions default to Apache-2.0 for tools that aren't built on GPL code.
-- Should the UB and Pauper toggles survive a power cycle?
-- Is the "Cowabunga" line on the UB-on slip okay to keep, given it's a made-up quote attributed to a real actor?
+- Is the decade counter line in the BOM ($1.50) one counter or the two the machine uses? The 5-pack costs $7.50.
+- What does the USB-C boost charger do, and where does the power switch sit in the circuit?
+- Should Adventure and Prepare cards print their spell half?
 
 **Follow-ups**
 
-- Fix or confirm issues 1 to 13.
-- Add `.gitignore` and `LICENSE`.
+- Fix issues 1 to 14 in later versions.
+- 2.0: keep the toggles across power cycles ([#12](https://github.com/calvin-young/momir-machine/issues/12)).
+- Add SPDX headers to the source files.
 - Add a version constant that matches the 1.0 tag.
-- Add tests for the card filter and the MDFC rules.
-- Make a Fritzing or wiring diagram once the wiring is confirmed.
+- Add tests for the card filter and the layout rules ([#13](https://github.com/calvin-young/momir-machine/issues/13)).
+- Make a Fritzing sketch if a breadboard-style picture would help.
 - Start `docs/PROMPT_STATS.md` for the collaboration log.

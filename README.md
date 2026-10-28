@@ -66,7 +66,7 @@ When I started, there were already a few Momir Vig machines on GitHub. I thought
 
 ## License
 
-To be decided.
+[Apache-2.0](LICENSE).
 
 ## Disclaimer
 
