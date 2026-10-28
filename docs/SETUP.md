@@ -149,6 +149,13 @@ sudo systemctl mask cloud-init-local.service cloud-init.service cloud-config.ser
 
 Reboot, then check `journalctl -u momir` for the boot times.
 
+### Future improvements
+
+These aren't done yet. Times are from a 19-second cold start.
+
+- **Print the startup slip before systemd starts.** The startup slip never changes, so it could be saved once as raw printer bytes. A short script set with `init=` in `cmdline.txt` would send them to the printer (`/dev/usb/lp0`, after `modprobe usblp`) and then hand over to systemd. The first ink would come about 4 seconds after the kernel starts, about 9 seconds after the switch. `main.py` would skip the slip if the script already printed it, and rebuild the saved bytes after each boot, so a changed logo or text shows up one boot later. Sending the saved bytes was tested and prints in about 1.4 seconds. The risk: if the script is missing or broken, the Pi won't boot until `init=` is removed from `cmdline.txt` on the SD card.
+- **Trim Python's start-up imports.** Importing python-escpos, Pillow and lgpio takes about 3.5 seconds on an idle Pi Zero and about 5 seconds during boot. Most of it is inside python-escpos, which loads modules the machine doesn't use, such as qrcode, barcode, YAML and every printer backend. This would bring the ready line forward.
+
 ## Run it
 
 Start the machine:
