@@ -113,6 +113,15 @@ sudo mkdir -p /etc/rpi/swap.conf.d
 printf "[Main]\nMechanism=none\n" | sudo tee /etc/rpi/swap.conf.d/90-no-swap.conf
 ```
 
+**System log in memory.** The machine is usually switched off without a shutdown. A power cut during a write to the SD card can corrupt it, and the system log is almost the only thing written once the program runs. Keeping the log in memory means the card is barely written to after boot. The current boot's log still works (`journalctl -u momir`); logs from earlier boots are lost. Files the program saves itself are not affected.
+
+```bash
+sudo mkdir -p /etc/systemd/journald.conf.d
+printf "[Journal]\nStorage=volatile\nRuntimeMaxUse=16M\n" | sudo tee /etc/systemd/journald.conf.d/90-volatile.conf
+sudo systemctl restart systemd-journald
+sudo rm -rf /var/log/journal
+```
+
 **Services you don't need.** None of these are needed for WiFi or SSH.
 
 ```bash
