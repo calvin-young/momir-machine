@@ -1,0 +1,23 @@
+[Unit]
+Description=Momir Vig Machine
+DefaultDependencies=no
+# Starts as soon as / is mounted (still read-only), in parallel with fsck and the rw remount
+RequiresMountsFor=/home/calvin/momir
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=simple
+# lgpio creates its notify pipe in the working directory, which must be writable early
+RuntimeDirectory=momir
+WorkingDirectory=/run/momir
+# python-escpos caches its printer database here instead of a new temp dir every boot
+Environment=ESCPOS_CAPABILITIES_PICKLE_DIR=/home/calvin/momir/.escpos-cache
+ExecStart=/home/calvin/momir/.venv/bin/python -u /home/calvin/momir/main.py
+Nice=-10
+CPUWeight=1000
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
