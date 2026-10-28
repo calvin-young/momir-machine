@@ -35,10 +35,22 @@ That still leaves creatures that can't be cast, depending on the card's layout. 
 - **Art is prepared for the printer.** Each image is converted to grayscale, resized to the printer's 384-pixel width, autocontrasted, brightened, and sharpened, then dithered to 1-bit with Floyd–Steinberg. At print time, art is cropped to a 1.47 aspect ratio.
 - **Dial values 17 to 19 are controls.** That leaves 0 to 16 for creature mana values.
 - **The startup slip prints before the catalog loads.** The printer responds right away at power-on, and the catalog loads while the slip prints.
-- **Fast boot over everything else.** The machine runs from a power switch, so the Pi is set up to reach the startup slip as fast as possible while WiFi and SSH come up later. The setup steps are in [SETUP.md](SETUP.md#faster-boot-optional).
 - **The button locks out for 2 seconds after each print.** The LED blinks during the lockout. The code doesn't say why. I assume it stops double-prints.
 - **Em dashes become hyphens** in the front face's text, so the printer's character set can print them.
 - **The Universes Beyond and Pauper toggles live in memory.** They reset on power cycle.
+
+## Boot time
+
+The machine runs from a power switch, so the goal is the shortest time from power-on to the startup slip. WiFi and SSH only have to come up eventually, for maintenance. The steps are in [SETUP.md](SETUP.md#faster-boot-optional).
+
+- **The program doesn't wait for the system.** The service starts as soon as the SD card is mounted, while it's still read-only, in parallel with the filesystem check. It has real-time priority until the ready line prints. On a single-core Pi Zero, the rest of the boot otherwise more than doubles Python's import time.
+- **WiFi and SSH come up late** (about 80 seconds) as a result. That's fine for maintenance access.
+- **The filesystem check stays.** The power switch cuts power without a shutdown, so the check is worth its 3 seconds.
+- **No initramfs.** It only handles first-boot setup and cases this machine doesn't have. Without it, the kernel stage drops from 11 to 4 seconds. The cost: if a kernel update ever needs it, the fix is one line in `config.txt`, on the SD card.
+- **Bluetooth and the display driver are off.** Nothing uses them. Bluetooth may come back in a later version.
+- **Python startup work happens after the slip.** The catalog loads after the startup slip, from a pickle cache. python-escpos's printer database cache lives in a fixed folder, because by default it goes to a new temp folder every start.
+
+Measured on a warm reboot, from kernel start: the startup slip went from about 52 to 16 seconds, and the ready line from about 52 to 17 seconds.
 
 ## Issues and inconsistencies
 
