@@ -34,8 +34,8 @@ Not counted: the resistor, wire, the enclosure, and the USB-A charger and USB-A 
 flowchart LR
     wall["USB-A charger<br/>and USB-A to C cable"] --> charger["USB-C 2S charger board"]
     cells["2x 18650 cells"] <--> bms["2S battery<br/>protection board"]
-    charger -- "charging" --> switch["Power switch"]
-    switch <--> bms
+    charger -- "charging" --> bms
+    bms --> switch["Power switch"]
     switch --> boost["MT3608 boost<br/>7 V"]
     switch --> buck["LM2596 buck<br/>5 V"]
     boost --> printer["EM5820 printer"]
@@ -45,8 +45,8 @@ flowchart LR
     btn["Triangle pushbutton<br/>with LED"] -- "GPIO 14 button<br/>GPIO 4 LED" --> pi
 ```
 
-- **Power:** The two cells sit in series behind the battery protection board, which guards against overcharge, overdischarge and short circuits, and balances the cells. The power switch sits between the protection board and everything else, so with the switch off, the cells are isolated. Past the switch, the MT3608 boost converter supplies 7 V to the printer, and the LM2596 buck converter supplies 5 V to the Pi through its USB power port.
-- **Charging:** A USB-A charger and a USB-A to USB-C cable plug into the charger board, which boosts the 5 V from USB up to 8.4 V to charge the 2S pack. The charge current flows through the power switch and the protection board to the cells.
+- **Power:** The two cells sit in series behind the battery protection board, which guards against overcharge, overdischarge and short circuits, and balances the cells. The power switch sits between the protection board and the two converters, so with the switch off, nothing draws from the cells. Past the switch, the MT3608 boost converter supplies 7 V to the printer, and the LM2596 buck converter supplies 5 V to the Pi through its USB power port.
+- **Charging:** A USB-A charger and a USB-A to USB-C cable plug into the charger board, which boosts the 5 V from USB up to 8.4 V to charge the 2S pack. The charger board connects straight to the protection board, ahead of the power switch, so the machine charges with the switch off. It can also run while it charges.
 - **Printer:** It connects to the Pi's USB data port with the micro-to-mini cable, for data only. The code finds it by USB ID `28e9:0289`.
 - **Dial:** Two [mechanical decade counters](https://www.adafruit.com/product/1082). Each has a common contact and ten digit contacts, and only one digit contact touches the common at a time. The commons go to ground, and each digit goes to a GPIO with the Pi's internal pull-up, so the selected digit reads low. Only the tens counter's 0 and 1 positions are wired.
 - **Button:** Active low, with an internal pull-up. The LED runs from GPIO 4 through a 220 ohm resistor. It's lit while the machine is ready, and it blinks while it's busy.
@@ -54,7 +54,6 @@ flowchart LR
 
 ### Quirks
 
-- **It only charges while it's switched on.** The switch also cuts the charger off from the cells, so charging only works with the switch on, and the machine boots and runs the whole time it charges. Moving the switch to sit between the protection board and the converters only, leaving the charger connected, would fix that.
 - **It needs a plain 5 V USB charger.** The charger board accepts 5 V only and doesn't support USB Power Delivery (PD). In practice it won't charge from USB-C chargers, such as a laptop charger. Use a USB-A charger and a USB-A to USB-C cable, which always supply 5 V. The likely cause is that the board lacks the CC pull-down resistors a USB-C charger looks for before it turns on its output. That isn't confirmed for this board.
 - **The power switch cuts power hard.** There's no clean shutdown, so the Pi checks its filesystem at every boot. See [DECISIONS.md](DECISIONS.md#boot-time).
 
@@ -64,27 +63,27 @@ BCM numbering. CMC X0 to X9 are the ones digits, and CMC 0X and 1X are the tens.
 
 Key: 🟧 3.3 V · 🟥 5 V · ⬛ ground · 🟨 ID EEPROM (don't use) · 🟦 LED · 🟪 button · 🟩 dial
 
-| Usage | Note | BCM | Pin | Pin | BCM | Note | Usage |
-| --- | --- | --- | ---: | :--- | --- | --- | --- |
-| | Power | 🟧 3V3 | 1 | 2 | 🟥 5V | Power | |
-| | SDA I2C | GPIO 2 | 3 | 4 | 🟥 5V | Power | |
-| | SCL I2C | GPIO 3 | 5 | 6 | ⬛ Ground | | 🟪 Button Ground |
-| 🟦 LED | | GPIO 4 | 7 | 8 | GPIO 14 | UART0_TXD | 🟪 Button |
-| 🟦 LED Ground | | ⬛ Ground | 9 | 10 | GPIO 15 | UART0_RXD | |
-| | | GPIO 17 | 11 | 12 | GPIO 18 | PCM_CLK | |
-| | | GPIO 27 | 13 | 14 | ⬛ Ground | | |
-| | | GPIO 22 | 15 | 16 | GPIO 23 | | |
-| | Power | 🟧 3V3 | 17 | 18 | GPIO 24 | | |
-| | MOSI | GPIO 10 | 19 | 20 | ⬛ Ground | | |
-| | MISO | GPIO 9 | 21 | 22 | GPIO 25 | | 🟩 CMC X0 |
-| | SCLK | GPIO 11 | 23 | 24 | GPIO 8 | CE0_N | 🟩 CMC X1 |
-| | | ⬛ Ground | 25 | 26 | GPIO 7 | CE1_N | 🟩 CMC X2 |
-| | I2C ID EEPROM | 🟨 ID_SD | 27 | 28 | 🟨 ID_SC | I2C ID EEPROM | |
-| 🟩 CMC X7 | | GPIO 5 | 29 | 30 | ⬛ Ground | | |
-| 🟩 CMC X8 | | GPIO 6 | 31 | 32 | GPIO 12 | | 🟩 CMC X3 |
-| 🟩 CMC X9 | | GPIO 13 | 33 | 34 | ⬛ Ground | | 🟩 CMC Ones Ground |
-| 🟩 CMC 0X | | GPIO 19 | 35 | 36 | GPIO 16 | | 🟩 CMC X4 |
-| 🟩 CMC 1X | | GPIO 26 | 37 | 38 | GPIO 20 | | 🟩 CMC X5 |
-| 🟩 CMC Tens Ground | | ⬛ Ground | 39 | 40 | GPIO 21 | | 🟩 CMC X6 |
+| Usage | BCM | Pin | Pin | BCM | Usage |
+| --- | --- | ---: | :--- | --- | --- |
+| | 🟧 3V3 | 1 | 2 | 🟥 5V | |
+| | GPIO 2 | 3 | 4 | 🟥 5V | |
+| | GPIO 3 | 5 | 6 | ⬛ Ground | 🟪 Button Ground |
+| 🟦 LED | GPIO 4 | 7 | 8 | GPIO 14[^uart] | 🟪 Button |
+| 🟦 LED Ground | ⬛ Ground | 9 | 10 | GPIO 15[^uart] | |
+| | GPIO 17 | 11 | 12 | GPIO 18 | |
+| | GPIO 27 | 13 | 14 | ⬛ Ground | |
+| | GPIO 22 | 15 | 16 | GPIO 23 | |
+| | 🟧 3V3 | 17 | 18 | GPIO 24 | |
+| | GPIO 10 | 19 | 20 | ⬛ Ground | |
+| | GPIO 9 | 21 | 22 | GPIO 25 | 🟩 CMC X0 |
+| | GPIO 11 | 23 | 24 | GPIO 8 | 🟩 CMC X1 |
+| | ⬛ Ground | 25 | 26 | GPIO 7 | 🟩 CMC X2 |
+| | 🟨 ID_SD | 27 | 28 | 🟨 ID_SC | |
+| 🟩 CMC X7 | GPIO 5 | 29 | 30 | ⬛ Ground | |
+| 🟩 CMC X8 | GPIO 6 | 31 | 32 | GPIO 12 | 🟩 CMC X3 |
+| 🟩 CMC X9 | GPIO 13 | 33 | 34 | ⬛ Ground | 🟩 CMC Ones Ground |
+| 🟩 CMC 0X | GPIO 19 | 35 | 36 | GPIO 16 | 🟩 CMC X4 |
+| 🟩 CMC 1X | GPIO 26 | 37 | 38 | GPIO 20 | 🟩 CMC X5 |
+| 🟩 CMC Tens Ground | ⬛ Ground | 39 | 40 | GPIO 21 | 🟩 CMC X6 |
 
-GPIO 14 and 15 are the UART, so the serial console has to stay off.
+[^uart]: GPIO 14 and 15 are the Pi's serial port (UART). The button uses GPIO 14, so the serial console has to stay off.
