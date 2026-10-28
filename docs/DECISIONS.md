@@ -19,7 +19,8 @@ That still leaves creatures that can't be cast, depending on the card's layout. 
 | `transform` | Cast the front face. The card flips later. | Keeps the card if the first face is a creature. Prints both faces. | Matches |
 | `modal_dfc` | Either face can be cast. | Keeps the card if either face is a creature. Always catalogs the front. Prints the back only if the front text mentions "transform". | Mismatch, but no cards are affected today (issues 4 and 5) |
 | `reversible_card` | They're not real. Ignore them. | Not excluded, but none get through today. | Latent (issue 6) |
-| `adventure`, `prepare` | Not covered by the rules yet. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Open (issue 3) |
+| `prepare` | The prepared spell can be cast while the creature is on the battlefield, so print it. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Matches |
+| `adventure` | The Adventure is cast from hand, so it doesn't matter once the creature is on the battlefield. Don't print it, unless a card makes it relevant there. | Keeps the card if the first face is a creature. Prints the spell half as a back face. | Mismatch (issue 3) |
 | `token` | Tokens are out. | Some get through, because their type line doesn't say "Token". | Bug (issue 2) |
 
 ### Modal double-faced cards
@@ -61,7 +62,7 @@ These are open in 1.0 and will be fixed in later versions. Most have a GitHub is
 
 1. **Bug: the Universes Beyond filter never excludes anything.** `pick_card` tests `card.get("promo_types") != "universesbeyond"`, but `promo_types` is a list (or missing), so the test always passes. With UB turned off, the 2,108 UB-tagged cards (about 12% of the pool) are still in it. That's easy to miss in play. The fix is `"universesbeyond" not in (card.get("promo_types") or [])`. ([#1](https://github.com/calvin-young/momir-machine/issues/1))
 2. **Bug: 24 token cards are in the catalog.** Their Scryfall layout is `token`, but their type line doesn't say "Token", so `01_filter_cards.py` keeps them. Examples: the Theros challenge-deck monster cards (Hydra Head, Phoberos Reaver) and helper cards like Morph and Manifest. Filtering on `layout == "token"` would catch them. ([#2](https://github.com/calvin-young/momir-machine/issues/2))
-3. **Open: Adventure and Prepare cards print their spell half.** 137 Adventure cards and 67 Prepare cards print the spell after "FOLD HERE". Neither layout is in the rules above. Going by the MDFC rule, the spell half isn't relevant once the creature is on the battlefield, so it probably shouldn't print. ([#3](https://github.com/calvin-young/momir-machine/issues/3))
+3. **Bug: Adventure cards print their spell half.** 137 Adventure cards print the Adventure after "FOLD HERE", but it can't be cast from the battlefield. Prepare cards (67) print their spell half too, which is correct. ([#3](https://github.com/calvin-young/momir-machine/issues/3))
 4. **Latent: a modal DFC with a non-creature front would get the wrong face.** The rule is "either face is a creature", but `04_build_catalog.py` always catalogs `card_faces[0]`. A non-creature front would be stored and the creature back would be unreachable. No catalog card has a non-creature front today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
 5. **Latent: a modal DFC's non-creature back could print.** `04_build_catalog.py` keeps the back when the front text mentions "transform", and it never checks that the back is a creature. No card hits this today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
 6. **Latent: reversible cards aren't excluded.** `01_filter_cards.py` doesn't check for `reversible_card`. None get through today. ([#4](https://github.com/calvin-young/momir-machine/issues/4))
@@ -78,7 +79,7 @@ Resolved while writing these docs:
 
 - **The "sound" comment.** It meant the noise of the printer feeding paper for the ready line. The comment in `print_ready` now says so.
 - **The pinout.** The code is right. The old table labeled GPIO 5, 6, and 13 as X6 to X8, and the new pinout follows the code.
-- **The BOM total.** The batteries are $8.88 for both, so the total is $73.98.
+- **The BOM total.** The batteries are $8.88 for both, and the dial uses two decade counters. One machine's parts cost $75.48, and buying them, multi-packs included, costs $110.28.
 - **The input format.** The Scryfall download is JSON Lines (`oracle-cards.jsonl.gz`), which is what `01` expects.
 - **Repo hygiene.** Added `LICENSE` (Apache-2.0) and `.gitignore`.
 
@@ -94,9 +95,13 @@ Resolved while writing these docs:
 - Prior art credited.
 - The project isn't work-related.
 - The code is right about the pinout. GPIO 24 and its ground aren't wired, so they're out of the docs.
-- Power: the 2S BMS feeds a boost converter (about 7 V) for the printer and a buck converter (5 V) for the Pi. The Pi takes power on one USB port and drives the printer from the other. It's all headless.
+- Power: the battery protection board feeds a boost converter (about 7 V) for the printer and a buck converter (5 V) for the Pi. The Pi takes power on one USB port and drives the printer from the other. It's all headless.
+- Charging: wall adapter, USB-C cable, USB-C charger board, protection board, cells. The power switch sits between the protection board and everything else, so it only charges while switched on. That's documented as a hardware quirk in HARDWARE.md, not as an issue.
+- Part names can be rewritten to be clearer.
 - The power switch starts the machine, and a systemd service runs `main.py`.
-- The dial is Adafruit's mechanical decade counters (product 1082).
+- The dial is two of Adafruit's mechanical decade counters (product 1082), at $1.50 each from a $7.50 5-pack.
+- The parts list shows the cost per machine and the cost to buy, multi-packs included.
+- Prepare cards print their spell half. Adventure cards don't, unless the Adventure matters on the battlefield.
 - BOM links added. The battery price covers both cells.
 - The pinout is drawn like the original Notion table.
 - License: my choice, free and open source.
@@ -109,17 +114,17 @@ Resolved while writing these docs:
 - The license is Apache-2.0, the convention's default for tools not built on GPL code. All the dependencies (python-escpos, Pillow, lgpio, requests) are compatible with it.
 - The pinout is an SVG drawn by `tools/pinout_svg.py`, because GitHub drops cell colors from Markdown tables. A plain table is kept under it for search and copying.
 - The wiring diagram is a Mermaid flowchart. There's no Fritzing file.
-- The USB-C boost charger charges the 2S pack, and the power switch sits between the pack and the converters.
-- Two decade counters are used (tens and ones), and only the tens counter's 0 and 1 positions are wired.
+- Only the tens counter's 0 and 1 positions are wired.
+- Pack sizes come from the product pages: the protection board is a 2-pack, the boost a 6-pack, the buck a 10-pack, and the cable a 3-pack. The charger board, switch, button and cells are bought singly.
+- The MT3608 output is about 7 V, as you remember it. It hasn't been measured.
 - The dial's common contacts go to the ground pins 34 (ones) and 39 (tens).
 - The button lockout exists to stop double-prints.
 - Nothing has been tagged as `v1.0.0` yet.
 
 **Questions not asked**
 
-- Is the decade counter line in the BOM ($1.50) one counter or the two the machine uses? The 5-pack costs $7.50.
-- What does the USB-C boost charger do, and where does the power switch sit in the circuit?
-- Should Adventure and Prepare cards print their spell half?
+- Does the button's LED have a series resistor? Adafruit recommends 220 to 1000 ohms, and none is in the parts list.
+- Which Adventure cards, if any, make the Adventure relevant on the battlefield?
 
 **Follow-ups**
 
