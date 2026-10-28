@@ -1,12 +1,75 @@
-# momir-machine
-Momir Vig powered by Raspberry Pi and a thermal receipt printer.  
+# Momir Vig Machine
 
-Designed to be run on a Raspberry Pi Zero W v1.1 running 32 bit Raspberry Pi Lite (Trixie) with some tweaks to improve boot time, driving a 58 mm Thermal Receipt Printer (model EM5820).  
+A Raspberry Pi and a thermal receipt printer that prints a random creature card for Momir Vig. Set a mana value on the dial, press the button, and a card comes out.
 
-This version 1.0 was written (mostly) without AI.  
+<!-- PHOTO: save the photo as docs/images/machine.jpg, then uncomment the line below.
+![The Momir Vig machine](docs/images/machine.jpg)
+-->
 
-There are many known issues, shortcuts, kludgy implementations, lazy decisions, and things I wanted to clean up but ran out of time and motivation.  It works, and I just want to play with it!  
+## What is Momir Vig?
 
-Everything is pretty specific to my hardware setup.  Later I'll post a full BOM and GPIO pinout and diagram for the rest of the hardware... and make it more extensible to other hardware configurations.  
+Momir Vig is a casual Magic: The Gathering format built around one card's ability: discard a card and pay X to create a token copy of a random creature with mana value X. The machine does the random part and prints the creature, so you can use it as the token.
 
-When I started this project, there were already a couple of other Momir Vig machines on Github.  I was planning on forking one of those projects but decided to start from scratch and learn as I went.  
+## Features
+
+- Dial a mana value from 0 to 16, press the button, and get a random creature card: art, type line, rules text, and power/toughness. Double-faced cards come out with a fold line.
+- Toggle Universes Beyond cards on or off.
+- Toggle a Pauper-only pool.
+- Print a reference sheet.
+- Look up a specific card from the command line.
+
+## Quick start
+
+1. Build the card catalog once, on any computer. See [docs/SETUP.md](docs/SETUP.md#build-the-catalog).
+2. Install the software on the Pi. See [docs/SETUP.md](docs/SETUP.md#on-the-pi).
+3. Run it:
+
+   ```bash
+   python3 main.py
+   ```
+
+## Controls
+
+The dial is two digits: tens (0 or 1) and ones (0 to 9).
+
+| Dial | Press the button and... |
+| --- | --- |
+| 0 to 16 | Print a random creature with that mana value |
+| 17 | Toggle the Pauper-only pool |
+| 18 | Toggle Universes Beyond cards |
+| 19 | Print the reference sheet |
+
+## How it works
+
+At boot, the machine prints a startup slip, loads the creature catalog, and prints a "ready" slip. Each press reads the dial, picks a random card from the catalog for that mana value (after the Universes Beyond and Pauper filters), and prints it. The button is ignored for two seconds after each print, and the LED blinks during that time.
+
+Card art is pre-processed into 384-pixel-wide, 1-bit dithered images for the printer. The catalog is built ahead of time from Scryfall data. The Pi only reads it. [docs/DECISIONS.md](docs/DECISIONS.md) explains why it's built this way.
+
+## Documentation
+
+- [Hardware](docs/HARDWARE.md): parts list, wiring, and pinout
+- [Setup](docs/SETUP.md): building the catalog, installing on the Pi, running it
+- [Decisions](docs/DECISIONS.md): design choices, known issues, and open questions
+- [Contributing](CONTRIBUTING.md)
+
+## Status
+
+Version 1.0. It works, and it's a hobby project, so expect rough edges. The hardware and printer settings are specific to this build. Known issues are listed in [docs/DECISIONS.md](docs/DECISIONS.md#issues-and-inconsistencies).
+
+## Prior art
+
+When I started, there were already a few Momir Vig machines on GitHub. I thought about forking one, but I decided to start from scratch and learn as I went. These projects inspired this one:
+
+- [Online version](https://ape3000.com/momir/)
+- [Basic printer version](https://github.com/MoritzHayden/momir-basic-printer)
+- [Deluxe printer version](https://www.reddit.com/r/magicTCG/comments/1tdpp16/the_tiny_mtg_printer_i_made_now_has_a_full_guide/)
+
+## License
+
+To be decided.
+
+## Disclaimer
+
+This is an unofficial fan project. Magic: The Gathering is a trademark of Wizards of the Coast, and this project isn't affiliated with or endorsed by them. Card data comes from [Scryfall](https://scryfall.com).
+
+Made by [Calvin Young](https://github.com/calvin-young).
