@@ -80,7 +80,7 @@ Check it with `systemctl status momir` and `journalctl -u momir`. The log shows 
 
 ## Faster boot (optional)
 
-With a stock Raspberry Pi OS Lite install, a Pi Zero W takes about a minute to print the startup slip. With the changes below, the startup slip goes out about 16 seconds after the kernel starts, and the ready line follows about 2 seconds later. Add a few seconds before that for the Pi's firmware. WiFi and SSH still work. They come up later than the machine, about 80 seconds after boot.
+With a stock Raspberry Pi OS Lite install, a Pi Zero W takes about two minutes to print the startup slip. With the changes below, it starts printing about 19 seconds after the power switch is flipped, and the ready line follows a few seconds later. WiFi and SSH still work. They come up later than the machine, about 80 seconds after boot.
 
 The service file above already does part of this. It starts the program as soon as the SD card is mounted, without waiting for the network or the rest of the system. It also gives the program real-time priority until the ready line prints.
 
@@ -97,6 +97,14 @@ dtoverlay=disable-bt
 gpu_mem=16
 ```
 
+Near the top, set these, which are on by default:
+
+```ini
+dtparam=audio=off
+camera_auto_detect=0
+display_auto_detect=0
+```
+
 Also comment out `dtoverlay=vc4-kms-v3d` and `max_framebuffers=2` near the top.
 
 | Setting | Effect |
@@ -106,8 +114,11 @@ Also comment out `dtoverlay=vc4-kms-v3d` and `max_framebuffers=2` near the top.
 | `gpu_mem=16` | Loads the smaller GPU firmware. Fine with no display or camera. |
 | `vc4-kms-v3d` commented out | Skips loading the display driver. Fine without a display. |
 | `boot_delay`, `disable_splash`, `initial_turbo` | Shorten the firmware stage. |
+| `audio`, `camera_auto_detect`, `display_auto_detect` off | Skip probing hardware the machine doesn't have. |
 
 **If the Pi doesn't boot after this**, put the SD card in any computer, open `config.txt` on the boot partition, and set `auto_initramfs=1` again.
+
+**Kernel messages** (`/boot/firmware/cmdline.txt`). Add `quiet loglevel=3` to the end of the line. The file must stay a single line.
 
 **Swap.** Turn it off. The program uses about 140 MB of the Pi Zero's 512 MB.
 
@@ -119,7 +130,17 @@ printf "[Main]\nMechanism=none\n" | sudo tee /etc/rpi/swap.conf.d/90-no-swap.con
 **Services you don't need.** None of these are needed for WiFi or SSH.
 
 ```bash
-sudo systemctl disable keyboard-setup.service console-setup.service rpi-eeprom-update.service sshswitch.service getty@tty1.service NetworkManager-wait-online.service
+sudo systemctl disable keyboard-setup.service console-setup.service rpi-eeprom-update.service sshswitch.service getty@tty1.service NetworkManager-wait-online.service bluetooth.service e2scrub_reap.service
+sudo systemctl disable apt-daily.timer apt-daily-upgrade.timer apt-listchanges.timer man-db.timer
+```
+
+The timers don't slow the boot itself, but they run package and manual-page jobs in the background while the machine is in use. Run `sudo apt update && sudo apt upgrade` by hand now and then instead.
+
+**cloud-init.** Raspberry Pi Imager uses it to apply your settings on the first boot. After that it only costs time.
+
+```bash
+sudo touch /etc/cloud/cloud-init.disabled
+sudo systemctl mask cloud-init-local.service cloud-init.service cloud-config.service cloud-final.service
 ```
 
 `getty@tty1` is the login prompt on a monitor. Leave it enabled if you plug one in. Leave NetworkManager, wpa_supplicant, ssh and systemd-rfkill alone: WiFi and SSH depend on them.
