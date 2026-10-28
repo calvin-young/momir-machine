@@ -178,7 +178,7 @@ class Momir:
             card for card in self.catalog.get(str(cmc), [])
             if card["year"] <= max_year
             and card["set"].lower() not in sets_banned
-            and (ub or card.get("promo_types") != "universesbeyond")
+            and (ub or "universesbeyond" not in (card.get("promo_types") or []))
             and (legality != "standard" or card["legalities"]["standard"] == "legal")
             and (legality != "premodern" or card["legalities"]["premodern"] == "legal")
             and (legality != "modern" or card["legalities"]["modern"] == "legal")
