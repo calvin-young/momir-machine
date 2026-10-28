@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import pickle
 import random
 import textwrap
 from pathlib import Path
@@ -12,6 +13,18 @@ from PIL import Image
 BASE_DIR = Path(__file__).resolve().parent
 CARDS_UB = False
 CARDS_LEGALITY = False
+
+# Legalities that pick_card() filters on; the catalog cache drops the others
+LEGALITIES_USED = ("standard", "premodern", "modern", "pauper")
+
+def trim_card(card):
+    card = dict(card)
+    card.pop("flavor_text", None)
+    if card.get("legalities"):
+        card["legalities"] = {k: card["legalities"][k] for k in LEGALITIES_USED if k in card["legalities"]}
+    if card.get("face_b"):
+        card["face_b"] = trim_card(card["face_b"])
+    return card
 
 class Momir:
 
@@ -41,15 +54,9 @@ class Momir:
         self.printer_max_a = printer_max_a
         self.printer_max_b = printer_max_b
 
-        print("Loading catalog...")
+        self.catalog_path = Path(catalog_path)
+        self.catalog = None
 
-        with open(catalog_path, "r", encoding="utf-8") as f:
-            self.catalog = json.load(f)
-
-        self.total_cards = sum(len(v) for v in self.catalog.values())
-        self.cmc_counts = Counter({int(cmc): len(cards) for cmc, cards in self.catalog.items()})
-
-        print(f"Loaded {self.total_cards:,} cards.")
         print("Connecting to printer...")
 
         self.printer = Usb(
@@ -64,6 +71,35 @@ class Momir:
         print("Printer ready.")
 
         self.random = random.Random()
+
+    def load_catalog(self):
+        # Loaded after the startup print so the printer responds quickly at power on.
+        # catalog.json is slow to parse on a Pi Zero, so a trimmed pickle of it is kept
+        # next to it and rebuilt whenever catalog.json is newer.
+        print("Loading catalog...")
+
+        cache_path = self.catalog_path.with_suffix(".pkl")
+        try:
+            if cache_path.stat().st_mtime < self.catalog_path.stat().st_mtime:
+                raise FileNotFoundError
+            with open(cache_path, "rb") as f:
+                self.catalog = pickle.load(f)
+        except (OSError, pickle.UnpicklingError, EOFError):
+            with open(self.catalog_path, "r", encoding="utf-8") as f:
+                self.catalog = json.load(f)
+            self.catalog = {cmc: [trim_card(c) for c in cards] for cmc, cards in self.catalog.items()}
+            try:
+                tmp_path = cache_path.with_suffix(".pkl.tmp")
+                with open(tmp_path, "wb") as f:
+                    pickle.dump(self.catalog, f, protocol=pickle.HIGHEST_PROTOCOL)
+                tmp_path.replace(cache_path)
+            except OSError as e:
+                print(f"Could not write catalog cache: {e}")
+
+        self.total_cards = sum(len(v) for v in self.catalog.values())
+        self.cmc_counts = Counter({int(cmc): len(cards) for cmc, cards in self.catalog.items()})
+
+        print(f"Loaded {self.total_cards:,} cards.")
 
     def load_card_image(self, path, mode="crop", target_aspect=1.47):
         img = Image.open(path).convert("L")
@@ -128,6 +164,10 @@ class Momir:
         txt = "X, Discard a card: Create a token that's a copy of a creature card with converted mana cost X chosen at random. Activate this ability only any time you could cast a sorcery and only once each turn."
         self.printer.textln(textwrap.fill(txt, width=self.printer_max_b, break_long_words=False))
         self.printer.ln(2)
+
+    def print_ready(self):
+        # Printed once the catalog is loaded; the sound means the button is ready
+        self.printer.set(align='left', font='b')
         self.printer.textln(f"{self.total_cards:,} creatures lurk in the vat...")
         self.printer.print_and_feed(3)
 

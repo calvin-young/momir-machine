@@ -49,6 +49,7 @@ def read_count():
 
 if len(sys.argv) > 1:
     momir = Momir()
+    momir.load_catalog()
     name = " ".join(sys.argv[1:])
     card = momir.pick_card_by_name(name)
 
@@ -63,6 +64,8 @@ if __name__ == '__main__':
     h = init_gpio()
     momir = Momir()
     momir.print_startup()
+    momir.load_catalog()
+    momir.print_ready()
 
     # Initialize Variables
     metadata = None
